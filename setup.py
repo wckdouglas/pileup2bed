@@ -20,8 +20,7 @@ setup(
                                        include_dirs = [np.get_include()])]),
     install_requires=[
           'cython',
-          'numpy',
-          'pyximport'
+          'numpy'
       ],
     cmdclass = {'build_ext': build_ext}
 )

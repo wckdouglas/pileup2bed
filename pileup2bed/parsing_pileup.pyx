@@ -4,9 +4,11 @@ import sys
 from collections import Counter
 from functools import partial
 import numpy as np
-cimport numpy as np
 import re
-complement_base = string.maketrans('actgnACTGN','TGACNTGACN')
+cimport numpy as np
+
+complement_base = string.maketrans('actgnACTGN', 'TGACNTGACN')
+
 
 def strandedBase(str bases_string):
     cdef:
@@ -14,14 +16,16 @@ def strandedBase(str bases_string):
         np.ndarray bases_positive
 
     # extract lower and upper strand reads
-    bases_negative = np.array(re.findall('[actg]',bases_string))
-    bases_positive = np.array(re.findall('[ACTG]',bases_string))
+    bases_negative = np.array(re.findall('[actg]', bases_string))
+    bases_positive = np.array(re.findall('[ACTG]', bases_string))
     return bases_positive, bases_negative
+
 
 cpdef int qualToInt(str q):
     cdef int qual = 0
-    qual = ord(q) -33
+    qual = ord(q) - 33
     return qual
+
 
 cpdef str qualityBases(str bases, str quals, int qual_threshold):
     cdef:
@@ -31,11 +35,14 @@ cpdef str qualityBases(str bases, str quals, int qual_threshold):
 
     # extract high quality bases by numpy array
     bases_list = np.array(list(bases))
-    quals_list = np.array(map(qualToInt,quals.strip()))
-    assert len(bases_list)==len(quals_list), 'bases != quals ' +'\n'+ ''.join(bases) +'!\n' + ''.join(quals)
+    quals_list = np.array(map(qualToInt, quals.strip()))
+    assert len(bases_list) == len(quals_list), 'bases != quals ' + '\n' + \
+                                                ''.join(bases) + '!\n' + \
+                                                ''.join(quals)
     quality_bases = bases_list[quals_list >= qual_threshold]
     out_bases = ''.join(quality_bases)
     return out_bases
+
 
 cpdef int printLine(str chrom, int cov_threshold, str pos, str ref,
                     np.ndarray bases, str strand,
@@ -48,11 +55,13 @@ cpdef int printLine(str chrom, int cov_threshold, str pos, str ref,
     bases_count = Counter(''.join(bases).upper())
     cov = np.sum(bases_count.values())
     bed_line = map(str, [chrom, pos, int(pos)+1, ref, cov, strand,
-                         bases_count['A'], bases_count['C'], bases_count['T'], bases_count['G'],
-                         len(deletions),len(insertions)])
+                         bases_count['A'], bases_count['C'],
+                         bases_count['T'], bases_count['G'],
+                         len(deletions), len(insertions)])
     bed_line_str = '\t'.join(bed_line)
-    print(bed_line_str,file=sys.stdout)
+    print(bed_line_str, file=sys.stdout)
     return 0
+
 
 def parseBases(str bases, str ref):
     cdef:
@@ -106,43 +115,46 @@ def parseBases(str bases, str ref):
         i += 1
     return _bases, insertion, deletion, insertion_bases, deletion_bases
 
+
 cpdef int processLine(int qual_threshold, int cov_threshold, str line):
     # define variables
     cdef:
         # define split input from mpileup line
-        str chrom, pos, ref,cov, inbases, quals
+        str chrom, pos, ref, cov, inbases, quals
         # define processed line result
         str bases, insertion_bases, deletion_bases
         int coverage, insertion, deletion
         np.ndarray bases_positive, bases_negative
 
-    #split mpileup line
+    # split mpileup line
     fields = line.split('\t')
     chrom,  pos, ref, cov, inbases, quals = fields
     coverage = int(cov)
     quals = quals.strip()
 
-
     if coverage > cov_threshold:
         # using bases field to get information
-        bases, insertion, deletion, insertion_bases, deletion_bases = parseBases(inbases, ref)
-        assert len(bases) == len(quals),'Wrongly parsed!! ' + bases + ' ' + str(coverage)
+        result = parseBases(inbases, ref)
+        bases, insertion, deletion, insertion_bases, deletion_bases = result
+        assert len(bases) == len(quals), 'Wrongly parsed!! ' +\
+                                         bases + ' ' + \
+                                         str(coverage)
 
-        #extract high quality bases only
+        # extract high quality bases only
         bases = qualityBases(bases, quals, qual_threshold)
 
         # identify upper and lower strand reads
         bases_positive, bases_negative = strandedBase(bases)
 
-        #identify indel from upper and lower strand
+        # identify indel from upper and lower strand
         insertion_positive, insertion_negative = strandedBase(insertion_bases)
         deletion_positive, deletion_negative = strandedBase(deletion_bases)
 
         # print line
         printFunc = partial(printLine, chrom, cov_threshold, pos)
         printed = map(printFunc, [ref.translate(complement_base), ref],
-                                [bases_negative, bases_positive],
-                                ['-','+'],
-                                [deletion_negative, deletion_positive],
-                                [insertion_negative, insertion_positive])
+                                 [bases_negative, bases_positive],
+                                 ['-', '+'],
+                                 [deletion_negative, deletion_positive],
+                                 [insertion_negative, insertion_positive])
     return 0

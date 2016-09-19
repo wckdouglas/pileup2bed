@@ -18,5 +18,10 @@ setup(
     ext_modules = cythonize([Extension('pileup2bed.parsing_pileup',
                                        ['pileup2bed/parsing_pileup.pyx'],
                                        include_dirs = [np.get_include()])]),
+    install_requires=[
+          'cython',
+          'numpy',
+          'pyximport'
+      ],
     cmdclass = {'build_ext': build_ext}
 )

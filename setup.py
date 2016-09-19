@@ -1,8 +1,15 @@
-from distutils.core import setup
-from Cython.Build import cythonize
-from Cython.Distutils import build_ext
-from distutils.extension import Extension
-import numpy as np
+from distutils.core import setup, Extension
+try:
+    from Cython.Build import cythonize
+    from Cython.Distutils import build_ext
+except ImportError:
+    raise ImportError("Requires cython to "
+            "be installed before running setup.py (pip install cython)")
+try:
+    import numpy as np
+except ImportError:
+    raise ImportError("Requires numpy to "
+            "be installed before running setup.py (pip install numpy)")
 
 setup(
     name='pileup2bed',

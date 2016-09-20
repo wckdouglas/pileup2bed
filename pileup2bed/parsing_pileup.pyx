@@ -54,7 +54,7 @@ cpdef int printLine(str chrom, int cov_threshold, str pos, str ref,
     # print output line as bed format with base count and indel count
     bases_count = Counter(''.join(bases).upper())
     cov = np.sum(bases_count.values())
-    if cov > cov_threshold:
+    if cov >= cov_threshold:
         bed_line = map(str, [chrom, pos, int(pos)+1, ref, cov, strand,
                     bases_count['A'], bases_count['C'],
                     bases_count['T'], bases_count['G'],

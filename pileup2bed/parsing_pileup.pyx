@@ -57,7 +57,8 @@ cpdef int printLine(str chrom, int cov_threshold, str pos,
     bases_count = Counter(''.join(bases).upper())
     cov = np.sum(bases_count.values())
     if cov >= cov_threshold:
-        if not mismatch_only or (mismatch_only and cov != bases_count[ref.upper()]):
+        is_mismatch_only = mismatch_only and cov != bases_count[ref.upper()]
+        if is_mismatch_only or not mismatch_only:
             bed_line = map(str, [chrom, pos, int(pos)+1,
                                 ref.upper(), cov, strand,
                                 bases_count['A'], bases_count['C'],

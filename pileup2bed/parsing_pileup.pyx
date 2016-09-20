@@ -6,6 +6,7 @@ from functools import partial
 import numpy as np
 import re
 cimport numpy as np
+from cpython cimport bool
 
 complement_base = string.maketrans('actgnACTGN', 'TGACNTGACN')
 
@@ -44,7 +45,8 @@ cpdef str qualityBases(str bases, str quals, int qual_threshold):
     return out_bases
 
 
-cpdef int printLine(str chrom, int cov_threshold, str pos, str ref,
+cpdef int printLine(str chrom, int cov_threshold, str pos,
+                    bool mismatch_only, str ref,
                     np.ndarray bases, str strand,
                     np.ndarray deletions, np.ndarray insertions):
     cdef:
@@ -55,13 +57,14 @@ cpdef int printLine(str chrom, int cov_threshold, str pos, str ref,
     bases_count = Counter(''.join(bases).upper())
     cov = np.sum(bases_count.values())
     if cov >= cov_threshold:
-        bed_line = map(str, [chrom, pos, int(pos)+1,
-                            ref.upper(), cov, strand,
-                            bases_count['A'], bases_count['C'],
-                            bases_count['T'], bases_count['G'],
-                            len(deletions), len(insertions)])
-        bed_line_str = '\t'.join(bed_line)
-        print(bed_line_str, file=sys.stdout)
+        if not mismatch_only or (mismatch_only and cov != bases_count[ref.upper()]):
+            bed_line = map(str, [chrom, pos, int(pos)+1,
+                                ref.upper(), cov, strand,
+                                bases_count['A'], bases_count['C'],
+                                bases_count['T'], bases_count['G'],
+                                len(deletions), len(insertions)])
+            bed_line_str = '\t'.join(bed_line)
+            print(bed_line_str, file=sys.stdout)
     return 0
 
 
@@ -118,7 +121,8 @@ def parseBases(str bases, str ref):
     return _bases, insertion, deletion, insertion_bases, deletion_bases
 
 
-cpdef int processLine(int qual_threshold, int cov_threshold, str line):
+cpdef int processLine(int qual_threshold, int cov_threshold,
+                    bool mismatch_only, str line):
     # define variables
     cdef:
         # define split input from mpileup line
@@ -153,7 +157,7 @@ cpdef int processLine(int qual_threshold, int cov_threshold, str line):
         deletion_positive, deletion_negative = strandedBase(deletion_bases)
 
         # print line
-        printFunc = partial(printLine, chrom, cov_threshold, pos)
+        printFunc = partial(printLine, chrom, cov_threshold, pos, mismatch_only)
         printed = map(printFunc, [ref.translate(complement_base), ref],
                                  [bases_negative, bases_positive],
                                  ['-', '+'],

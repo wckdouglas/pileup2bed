@@ -22,6 +22,7 @@ def getopt():
                         help='coverage threshold (default: 10)')
     parser.add_argument('-q', '--qual', default=33, type=int,
                         help='quality threshold (default: 33)')
+    parser.add_argument('-m','--mismatch_only', action='store_true', help='output position with mismatch only')
     args = parser.parse_args()
     return args
 
@@ -32,10 +33,11 @@ def main():
     qual_threshold = args.qual
     cov_threshold = args.cov
     filename = args.input
+    mismatch_only = args.mismatch_only
     header = ['chrom', 'start', 'end', 'ref_base', 'coverage', 'strand',
               'A', 'C', 'T', 'G', 'deletions', 'insertions']
     print('\t'.join(header), file=sys.stdout)
-    lineFunc = partial(processLine, qual_threshold, cov_threshold)
+    lineFunc = partial(processLine, qual_threshold, cov_threshold, mismatch_only)
     handle = sys.stdin if filename == '-' else open(filename, 'r')
     for lineno, line in enumerate(handle):
         lineFunc(line)

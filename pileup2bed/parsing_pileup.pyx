@@ -55,10 +55,11 @@ cpdef int printLine(str chrom, int cov_threshold, str pos, str ref,
     bases_count = Counter(''.join(bases).upper())
     cov = np.sum(bases_count.values())
     if cov >= cov_threshold:
-        bed_line = map(str, [chrom, pos, int(pos)+1, ref, cov, strand,
-                    bases_count['A'], bases_count['C'],
-                    bases_count['T'], bases_count['G'],
-                    len(deletions), len(insertions)])
+        bed_line = map(str, [chrom, pos, int(pos)+1,
+                            ref.upper(), cov, strand,
+                            bases_count['A'], bases_count['C'],
+                            bases_count['T'], bases_count['G'],
+                            len(deletions), len(insertions)])
         bed_line_str = '\t'.join(bed_line)
         print(bed_line_str, file=sys.stdout)
     return 0

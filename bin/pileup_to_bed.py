@@ -35,12 +35,7 @@ def main():
     filename = args.input
     mismatch_only = args.mismatch_only
     threads = args.threads
-    header = ['chrom', 'start', 'end', 'ref_base', 'coverage', 'strand',
-              'A', 'C', 'T', 'G', 'deletions', 'insertions']
-    print('\t'.join(header), file=sys.stdout)
-    handle = sys.stdin if filename == '-' else open(filename, 'r')
-
-    analyzeFile(handle, qual_threshold, cov_threshold, mismatch_only, threads)
+    analyzeFile(filename, qual_threshold, cov_threshold, mismatch_only, threads)
 
 if __name__ == '__main__':
     main()

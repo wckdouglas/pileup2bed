@@ -8,6 +8,7 @@ import re
 cimport numpy as np
 from multiprocessing import Pool
 from cpython cimport bool
+from itertools import imap
 
 complement_base = string.maketrans('actgnACTGN', 'TGACNTGACN')
 np_ord = np.vectorize(ord,otypes=[np.int8])
@@ -168,18 +169,33 @@ cpdef str processLine(int qual_threshold, int cov_threshold,
         return 'No'
 
 
-cpdef int analyzeFile(handle, int qual_threshold,
+cpdef int analyzeFile(str filename, int qual_threshold,
                     int cov_threshold, bool mismatch_only, int threads):
     cdef:
         int lineno
         str line, print_string
 
+    header = ['chrom', 'start', 'end', 'ref_base', 'coverage', 'strand',
+              'A', 'C', 'T', 'G', 'deletions', 'insertions']
+    print('\t'.join(header), file=sys.stdout)
     lineFunc = partial(processLine, qual_threshold, cov_threshold, mismatch_only)
-    process = Pool(threads).imap_unordered(lineFunc, handle, chunksize = 10000)
-    for lineno, p in enumerate(process):
-        print_string = p
+
+    if filename == '-':
+        handle = sys.stdin
+    else:
+        handle = open(filename, 'r')
+
+    # runnning process
+    pool = Pool(threads)
+    processes = pool.imap(lineFunc, handle)
+    for lineno, print_string in enumerate(processes):
         if print_string != 'No' and print_string != '':
             print(print_string, file=sys.stdout)
         if lineno % 100000 == 0:
             print('Parsed %i lines' % (lineno), file=sys.stderr)
+    pool.close()
+    pool.join()
+
+    if filename != '-':
+        handle.close()
     return 0

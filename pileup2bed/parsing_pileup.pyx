@@ -60,7 +60,7 @@ cpdef int printLine(str chrom, int cov_threshold, str pos,
         is_mismatch_only = mismatch_only and cov != bases_count[ref.upper()]
         if is_mismatch_only or not mismatch_only:
             bed_line = map(str, [chrom, pos, int(pos)+1,
-                                ref.upper(), cov, strand,
+                                ref, cov, strand,
                                 bases_count['A'], bases_count['C'],
                                 bases_count['T'], bases_count['G'],
                                 len(deletions), len(insertions)])
@@ -159,6 +159,7 @@ cpdef int processLine(int qual_threshold, int cov_threshold,
 
         # print line
         printFunc = partial(printLine, chrom, cov_threshold, pos, mismatch_only)
+        ref = ref.upper()
         printed = map(printFunc, [ref.translate(complement_base), ref],
                                  [bases_negative, bases_positive],
                                  ['-', '+'],

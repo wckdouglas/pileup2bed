@@ -9,7 +9,7 @@ cimport numpy as np
 from cpython cimport bool
 
 complement_base = string.maketrans('actgnACTGN', 'TGACNTGACN')
-
+np_ord = np.vectorize(ord,otypes=[np.int8])
 
 def strandedBase(str bases_string):
     cdef:
@@ -22,12 +22,6 @@ def strandedBase(str bases_string):
     return bases_positive, bases_negative
 
 
-cpdef int qualToInt(str q):
-    cdef int qual = 0
-    qual = ord(q) - 33
-    return qual
-
-
 cpdef str qualityBases(str bases, str quals, int qual_threshold):
     cdef:
         np.ndarray bases_list
@@ -36,7 +30,7 @@ cpdef str qualityBases(str bases, str quals, int qual_threshold):
 
     # extract high quality bases by numpy array
     bases_list = np.array(list(bases))
-    quals_list = np.array(map(qualToInt, quals.strip()))
+    quals_list = np_ord(list(quals)) - 33
     assert len(bases_list) == len(quals_list), 'bases != quals ' + '\n' + \
                                                 ''.join(bases) + '!\n' + \
                                                 ''.join(quals)
@@ -57,7 +51,7 @@ cpdef int printLine(str chrom, int cov_threshold, str pos,
     bases_count = Counter(''.join(bases).upper())
     cov = np.sum(bases_count.values())
     if cov >= cov_threshold:
-        is_mismatch_only = mismatch_only and cov != bases_count[ref.upper()]
+        is_mismatch_only = mismatch_only and cov != bases_count[ref]
         if is_mismatch_only or not mismatch_only:
             bed_line = map(str, [chrom, pos, int(pos)+1,
                                 ref, cov, strand,
@@ -134,7 +128,7 @@ cpdef int processLine(int qual_threshold, int cov_threshold,
         np.ndarray bases_positive, bases_negative
 
     # split mpileup line
-    fields = line.split('\t')
+    fields = line.strip().split('\t')
     chrom,  pos, ref, cov, inbases, quals = fields
     coverage = int(cov)
     quals = quals.strip()
@@ -165,4 +159,19 @@ cpdef int processLine(int qual_threshold, int cov_threshold,
                                  ['-', '+'],
                                  [deletion_negative, deletion_positive],
                                  [insertion_negative, insertion_positive])
+    return 0
+
+
+cpdef int analyzeFile(handle, int qual_threshold,
+                    int cov_threshold, bool mismatch_only):
+
+    cdef:
+        int lineno
+        str line
+
+    lineFunc = partial(processLine, qual_threshold, cov_threshold, mismatch_only)
+    for lineno, line in enumerate(handle):
+        lineFunc(line)
+        if lineno % 100000 == 0:
+            print('Parsed %i lines' % (lineno), file=sys.stderr)
     return 0

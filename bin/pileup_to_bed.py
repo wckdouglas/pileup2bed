@@ -2,12 +2,11 @@
 
 from __future__ import print_function
 import sys
-from functools import partial
 import string
 import argparse
 import pyximport
 import numpy as np
-from pileup2bed.parsing_pileup import (parseBases, qualToInt, processLine)
+from pileup2bed.parsing_pileup import analyzeFile
 pyximport.install(setup_args={'include_dirs': np.get_include()})
 
 
@@ -37,12 +36,9 @@ def main():
     header = ['chrom', 'start', 'end', 'ref_base', 'coverage', 'strand',
               'A', 'C', 'T', 'G', 'deletions', 'insertions']
     print('\t'.join(header), file=sys.stdout)
-    lineFunc = partial(processLine, qual_threshold, cov_threshold, mismatch_only)
     handle = sys.stdin if filename == '-' else open(filename, 'r')
-    for lineno, line in enumerate(handle):
-        lineFunc(line)
-        if lineno % 100000 == 0:
-            print('Parsed %i lines' % (lineno), file=sys.stderr)
+
+    analyzeFile(handle, qual_threshold, cov_threshold, mismatch_only)
 
 if __name__ == '__main__':
     main()

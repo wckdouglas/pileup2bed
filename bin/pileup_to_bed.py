@@ -22,6 +22,7 @@ def getopt():
     parser.add_argument('-q', '--qual', default=33, type=int,
                         help='quality threshold (default: 33)')
     parser.add_argument('-m','--mismatch_only', action='store_true', help='output position with mismatch only')
+    parser.add_argument('-t','--threads', default=1, help='threads to use (default = 1)', type=int)
     args = parser.parse_args()
     return args
 
@@ -33,12 +34,13 @@ def main():
     cov_threshold = args.cov
     filename = args.input
     mismatch_only = args.mismatch_only
+    threads = args.threads
     header = ['chrom', 'start', 'end', 'ref_base', 'coverage', 'strand',
               'A', 'C', 'T', 'G', 'deletions', 'insertions']
     print('\t'.join(header), file=sys.stdout)
     handle = sys.stdin if filename == '-' else open(filename, 'r')
 
-    analyzeFile(handle, qual_threshold, cov_threshold, mismatch_only)
+    analyzeFile(handle, qual_threshold, cov_threshold, mismatch_only, threads)
 
 if __name__ == '__main__':
     main()

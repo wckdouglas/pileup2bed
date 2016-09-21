@@ -6,6 +6,7 @@ from functools import partial
 import numpy as np
 import re
 cimport numpy as np
+from multiprocessing import Pool
 from cpython cimport bool
 
 complement_base = string.maketrans('actgnACTGN', 'TGACNTGACN')
@@ -39,7 +40,7 @@ cpdef str qualityBases(str bases, str quals, int qual_threshold):
     return out_bases
 
 
-cpdef int printLine(str chrom, int cov_threshold, str pos,
+cpdef str printLine(str chrom, int cov_threshold, str pos,
                     bool mismatch_only, str ref,
                     np.ndarray bases, str strand,
                     np.ndarray deletions, np.ndarray insertions):
@@ -59,9 +60,11 @@ cpdef int printLine(str chrom, int cov_threshold, str pos,
                                 bases_count['T'], bases_count['G'],
                                 len(deletions), len(insertions)])
             bed_line_str = '\t'.join(bed_line)
-            print(bed_line_str, file=sys.stdout)
-    return 0
-
+            return bed_line_str
+        else:
+            return 'No'
+    else:
+        return 'No'
 
 def parseBases(str bases, str ref):
     cdef:
@@ -116,7 +119,7 @@ def parseBases(str bases, str ref):
     return _bases, insertion, deletion, insertion_bases, deletion_bases
 
 
-cpdef int processLine(int qual_threshold, int cov_threshold,
+cpdef str processLine(int qual_threshold, int cov_threshold,
                     bool mismatch_only, str line):
     # define variables
     cdef:
@@ -126,12 +129,12 @@ cpdef int processLine(int qual_threshold, int cov_threshold,
         str bases, insertion_bases, deletion_bases
         int coverage, insertion, deletion
         np.ndarray bases_positive, bases_negative
+        str print_string
 
     # split mpileup line
     fields = line.strip().split('\t')
     chrom,  pos, ref, cov, inbases, quals = fields
     coverage = int(cov)
-    quals = quals.strip()
 
     if coverage > cov_threshold:
         # using bases field to get information
@@ -154,24 +157,29 @@ cpdef int processLine(int qual_threshold, int cov_threshold,
         # print line
         printFunc = partial(printLine, chrom, cov_threshold, pos, mismatch_only)
         ref = ref.upper()
-        printed = map(printFunc, [ref.translate(complement_base), ref],
+        print_list = map(printFunc, [ref.translate(complement_base), ref],
                                  [bases_negative, bases_positive],
                                  ['-', '+'],
                                  [deletion_negative, deletion_positive],
                                  [insertion_negative, insertion_positive])
-    return 0
+        print_string = '\n'.join(print_list).strip('No').strip('\n')
+        return print_string
+    else:
+        return 'No'
 
 
 cpdef int analyzeFile(handle, int qual_threshold,
-                    int cov_threshold, bool mismatch_only):
-
+                    int cov_threshold, bool mismatch_only, int threads):
     cdef:
         int lineno
-        str line
+        str line, print_string
 
     lineFunc = partial(processLine, qual_threshold, cov_threshold, mismatch_only)
-    for lineno, line in enumerate(handle):
-        lineFunc(line)
+    process = Pool(threads).imap_unordered(lineFunc, handle, chunksize = 10000)
+    for lineno, p in enumerate(process):
+        print_string = p
+        if print_string != 'No' and print_string != '':
+            print(print_string, file=sys.stdout)
         if lineno % 100000 == 0:
             print('Parsed %i lines' % (lineno), file=sys.stderr)
     return 0

@@ -133,7 +133,8 @@ cpdef str processLine(int qual_threshold, int cov_threshold,
         str print_string
 
     # split mpileup line
-    fields = line.strip().split('\t')
+    line = line.strip('\n')
+    fields = line.split('\t')
     chrom,  pos, ref, cov, inbases, quals = fields
     coverage = int(cov)
 

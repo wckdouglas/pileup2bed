@@ -132,13 +132,14 @@ cpdef str processLine(int qual_threshold, int cov_threshold,
         # define processed line result
         str bases, insertion_bases, deletion_bases
         int coverage, insertion, deletion
+        np.ndarray insertion_positive, insertion_negative
+        np.ndarray deletion_positive, deletion_negative
         np.ndarray bases_positive, bases_negative
         str print_string
 
     # split mpileup line
     line = line.strip('\n')
-    fields = line.split('\t')
-    chrom,  pos, ref, cov, inbases, quals = fields
+    chrom,  pos, ref, cov, inbases, quals = line.split('\t')
     coverage = int(cov)
 
     if coverage > cov_threshold:
@@ -177,7 +178,7 @@ cpdef int analyzeFile(str filename, int qual_threshold,
                     int cov_threshold, bool mismatch_only, int threads):
     cdef:
         int lineno
-        str line, print_string, header
+        str line, print_string
 
     header = ['chrom', 'start', 'end', 'ref_base', 'coverage', 'strand',
               'A', 'C', 'T', 'G', 'deletions', 'insertions']

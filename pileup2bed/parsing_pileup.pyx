@@ -28,14 +28,14 @@ cpdef str qualityBases(str bases, str quals, int qual_threshold):
     cdef:
         np.ndarray bases_list
         np.ndarray quals_list
+        np.ndarray quality_bases
         str out_bases
 
     # extract high quality bases by numpy array
     bases_list = np.array(list(bases))
     quals_list = np_ord(list(quals)) - 33
     assert len(bases_list) == len(quals_list), 'bases != quals ' + '\n' + \
-                                                ''.join(bases) + '!\n' + \
-                                                ''.join(quals)
+                                                bases + '\n' + quals
     quality_bases = bases_list[quals_list >= qual_threshold]
     out_bases = ''.join(quality_bases)
     return out_bases
@@ -48,6 +48,7 @@ cpdef str printLine(str chrom, int cov_threshold, str pos,
     cdef:
         str bed_line_str
         int cov
+        bool is_mismatch_only
 
     # print output line as bed format with base count and indel count
     bases_count = Counter(''.join(bases).upper())
@@ -74,10 +75,12 @@ def parseBases(str bases, str ref):
         int i_max = len(bases)
         int insertion = 0
         int deletion = 0
-        str _bases = ''
+        int del_count, insert_count
+        str insert_digit, del_digit
+        str _bases  = ''
         str insertion_bases = ''
         str deletion_bases = ''
-        str c = ''
+        str c
 
     # loop over the bases field
     # if it is ./, add to reference
@@ -174,7 +177,7 @@ cpdef int analyzeFile(str filename, int qual_threshold,
                     int cov_threshold, bool mismatch_only, int threads):
     cdef:
         int lineno
-        str line, print_string
+        str line, print_string, header
 
     header = ['chrom', 'start', 'end', 'ref_base', 'coverage', 'strand',
               'A', 'C', 'T', 'G', 'deletions', 'insertions']

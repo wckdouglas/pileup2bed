@@ -139,10 +139,12 @@ cpdef str processLine(int qual_threshold, int cov_threshold,
 
     # split mpileup line
     line = line.strip('\n')
-    chrom,  pos, ref, cov, inbases, quals = line.split('\t')
-    coverage = int(cov)
+    fields = line.split('\t')
+    coverage = int(fields[3])
 
     if coverage > cov_threshold:
+        chrom,  pos, ref, cov, inbases, quals = fields
+
         # using bases field to get information
         result = parseBases(inbases, ref)
         bases, insertion, deletion, insertion_bases, deletion_bases = result
